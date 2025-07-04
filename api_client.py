@@ -1,21 +1,12 @@
-from abc import ABC, abstractmethod
-from typing import List, TypedDict
-from datetime import datetime, timedelta
-from utils.cache import save_to_cache, load_from_cache
 import requests
+from typing import List
+from datetime import datetime, timedelta
+from abc import ABC, abstractmethod
+
+from utils.cache import save_to_cache, load_from_cache
+from schemas import ArticleDict
 
 
-# --- Article Schema ---
-class ArticleDict(TypedDict):
-    title: str
-    description: str
-    content: str
-    published_at: str
-    url: str
-    source: str
-
-
-# --- Base Client ---
 class BaseNewsAPIClient(ABC):
     def __init__(self, api_key: str):
         self.api_key = api_key
@@ -25,7 +16,6 @@ class BaseNewsAPIClient(ABC):
         pass
 
 
-# --- NewsAPI Client ---
 class NewsAPIClient(BaseNewsAPIClient):
     BASE_URL = "https://newsapi.org/v2/top-headlines"
 
@@ -69,7 +59,7 @@ class NewsAPIClient(BaseNewsAPIClient):
 
         save_to_cache(cache_key, articles)
         return articles
-    
+
 
 class AlphaVantageAPIClient(BaseNewsAPIClient):
     BASE_URL = "https://www.alphavantage.co/query"
