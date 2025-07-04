@@ -30,17 +30,24 @@ class NewsAPIClient(BaseNewsAPIClient):
     BASE_URL = "https://newsapi.org/v2/top-headlines"
 
     def fetch_latest_articles(self, country: str="us", category: str = None, page_size: int = 50) -> List[ArticleDict]:
-        print("fetch_latest_articles")
+        cache_key = f"newsapi_{country}_{category}_{page_size}"
+        cached = load_from_cache(cache_key)
+        if cached:
+            print("[CACHE] Using cached NewsAPI data")
+            return cached
+        
+        headers = {"X-Api-Key":self.api_key}
         params = {
             "apiKey": self.api_key,
             "country": country,
             "pageSize": page_size,
+            "language": "en",
         }
         if category:
             params["category"] = category
 
         try:
-            response = requests.get(self.BASE_URL, params=params)
+            response = requests.get(self.BASE_URL, params=params, headers=headers)
             response.raise_for_status()
             data = response.json()
         except requests.RequestException as e:
@@ -60,6 +67,7 @@ class NewsAPIClient(BaseNewsAPIClient):
 
             articles.append(article)
 
+        save_to_cache(cache_key, articles)
         return articles
     
 
