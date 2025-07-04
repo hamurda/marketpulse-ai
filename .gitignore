@@ -1,0 +1,43 @@
+#vs code
+.vscode/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environments
+.venv/
+env/
+venv/
+*.env
+*.venv
+
+# Environment variables
+.env
+*.env
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Data caches or local files
+data/*.json
+data/*.csv
+
+# Notebook checkpoints (if using Jupyter)
+.ipynb_checkpoints
+
+# VSCode settings (optional)
+.vscode/
+
+# Model or embedding files (if added later)
+*.pt
+*.bin
+*.pkl
+
+# Streamlit app session cache
+.streamlit/
+
+# Log files
+*.log
