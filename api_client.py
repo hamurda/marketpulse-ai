@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import List, TypedDict
+from datetime import datetime, timedelta
 import requests
 
 
@@ -54,6 +55,49 @@ class NewsAPIClient(BaseNewsAPIClient):
                 "published_at": item.get("publishedAt", ""),
                 "url": item.get("url", ""),
                 "source": item.get("source", {}).get("name", "")
+            }
+
+            articles.append(article)
+
+        return articles
+    
+
+class AlphaVantageAPIClient(BaseNewsAPIClient):
+    BASE_URL = "https://www.alphavantage.co/query"
+
+    def fetch_latest_articles(self, tickers: str = "", topics: str = "") -> List[ArticleDict]:
+        params = {
+            "function": "NEWS_SENTIMENT",
+            "apikey": self.api_key,
+        }
+        if tickers:
+            params["tickers"] = tickers
+        if topics:
+            params["topics"] = topics
+
+        today = datetime.now()
+        two_weeks_ago = today - timedelta(days=14)
+        params["time_from"] = two_weeks_ago.strftime("%Y%m%dT%H%M%S")
+        params["time_to"] = today.strftime("%Y%m%dT%H%M%S")
+
+        try:
+            response = requests.get(self.BASE_URL, params=params)
+            response.raise_for_status()
+            data = response.json()
+        except requests.RequestException as e:
+            print(f"[ERROR] Failed to fetch Alpha Vantage articles: {e}")
+            return []
+
+        articles = []
+        for item in data.get("feed", []):
+            print(item)
+            article: ArticleDict = {
+                "title": item.get("title", ""),
+                "description": item.get("summary", ""),
+                "content": item.get("summary", ""),
+                "published_at": item.get("time_published", ""),
+                "url": item.get("url", ""),
+                "source": item.get("source_domain", "")
             }
 
             articles.append(article)
