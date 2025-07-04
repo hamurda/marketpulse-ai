@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List, TypedDict
 from datetime import datetime, timedelta
+from utils.cache import save_to_cache, load_from_cache
 import requests
 
 
@@ -66,6 +67,14 @@ class AlphaVantageAPIClient(BaseNewsAPIClient):
     BASE_URL = "https://www.alphavantage.co/query"
 
     def fetch_latest_articles(self, tickers: str = "", topics: str = "") -> List[ArticleDict]:
+        cache_key = f"alpha_{tickers}_{topics}"
+        cached = load_from_cache(cache_key)
+        if cached:
+            print("[CACHE] Using cached Alpha Vantage data")
+            return cached
+        
+        print("API CALLED")
+        
         params = {
             "function": "NEWS_SENTIMENT",
             "apikey": self.api_key,
@@ -102,4 +111,5 @@ class AlphaVantageAPIClient(BaseNewsAPIClient):
 
             articles.append(article)
 
+        save_to_cache(cache_key, articles)
         return articles
