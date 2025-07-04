@@ -13,3 +13,6 @@
   - Assess sentiment (bullish, bearish, neutral)
 - 🧰 Modular pipeline with clean prompts and optional RAG for richer context
 - 🖥️ UI: **Streamlit**
+
+
+🚧 Project in progress. I'm building this to explore LLM engineering workflows and modular design around real-world APIs
