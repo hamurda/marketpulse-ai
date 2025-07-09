@@ -3,8 +3,8 @@ from typing import List
 from datetime import datetime, timedelta
 from abc import ABC, abstractmethod
 
-from utils.cache import save_to_cache, load_from_cache
-from schemas import ArticleDict
+from src.utils.cache import save_to_cache, load_from_cache
+from src.schemas import ArticleDict
 
 
 class BaseNewsAPIClient(ABC):
@@ -52,7 +52,11 @@ class NewsAPIClient(BaseNewsAPIClient):
                 "content": item.get("content") or item.get("description", ""),
                 "published_at": item.get("publishedAt", ""),
                 "url": item.get("url", ""),
-                "source": item.get("source", {}).get("name", "")
+                "source": item.get("source", {}).get("name", ""),
+                "overall_sentiment_label": item.get("overall_sentiment_label", ""),
+                "overall_sentiment_score": item.get("overall_sentiment_score", 0),
+                "topics": item.get("topics", []),
+                "ticker_sentiment": item.get("ticker_sentiment", []),
             }
 
             articles.append(article)
@@ -84,8 +88,8 @@ class AlphaVantageAPIClient(BaseNewsAPIClient):
 
         today = datetime.now()
         two_weeks_ago = today - timedelta(days=14)
-        params["time_from"] = two_weeks_ago.strftime("%Y%m%dT%H%M%S")
-        params["time_to"] = today.strftime("%Y%m%dT%H%M%S")
+        params["time_from"] = two_weeks_ago.strftime("%Y%m%dT%H%M")
+        params["time_to"] = today.strftime("%Y%m%dT%H%M")
 
         try:
             response = requests.get(self.BASE_URL, params=params)
@@ -97,14 +101,17 @@ class AlphaVantageAPIClient(BaseNewsAPIClient):
 
         articles = []
         for item in data.get("feed", []):
-            print(item)
             article: ArticleDict = {
                 "title": item.get("title", ""),
                 "description": item.get("summary", ""),
                 "content": item.get("summary", ""),
                 "published_at": item.get("time_published", ""),
                 "url": item.get("url", ""),
-                "source": item.get("source_domain", "")
+                "source": item.get("source_domain", ""),
+                "overall_sentiment_label": item.get("overall_sentiment_label", ""),
+                "overall_sentiment_score": item.get("overall_sentiment_score", 0.0),
+                "topics": item.get("topics", []),
+                "ticker_sentiment": item.get("ticker_sentiment", []),
             }
 
             articles.append(article)
