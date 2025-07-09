@@ -13,8 +13,6 @@ from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
 
 
-URL = "https://edition.cnn.com/business/investing"
-
 def get_cnn_articles() -> List[Dict]:
     """
     Load from cache if available, otherwise scrape and save.
@@ -44,7 +42,7 @@ def scrape_cnn_investing() -> List[Dict]:
 
 class CNNInvestingScraper:
     def __init__(self, driver=None):
-        self.url = URL
+        self.url = "https://edition.cnn.com/business/investing"
         self.articles_data = []
 
         self._driver = driver
