@@ -1,7 +1,7 @@
 import os
-from src.schemas import ArticleDict, SummaryDict
-from src.utils.cache import load_from_cache, save_to_cache
 import hashlib
+from typing import List
+from src.schemas import ArticleDict, SummaryDict
 
 import torch
 import ollama
@@ -43,12 +43,7 @@ class FinNewsSummarizer:
         self.cache_dir = cache_dir
         self.use_local_model = use_local_model
 
-    def summarize(self, article: ArticleDict) -> str:
-        article_id = self._hash(article["url"])
-        cache_path = os.path.join(self.cache_dir, f"{article_id}.json")
-        if os.path.exists(cache_path):
-            return load_from_cache(cache_path)
-        
+    def summarize(self, article: ArticleDict) -> str:        
         if self.use_local_model:
             summary = self._summarize_llama32(article)
         else:
@@ -67,15 +62,7 @@ class FinNewsSummarizer:
                 "ticker_sentiment": article.get("ticker_sentiment", []),
             }
 
-        save_to_cache(summarised, cache_path)
         return summarised
-    
-    def summarize_all(self, article_dir: str = "data/cache"):
-        for file in os.listdir(article_dir):
-            if not file.endswith(".json"):
-                continue
-            article = load_from_cache(os.path.join(article_dir, file))
-            self.summarize(article)
 
     def _summarize_llama32(self, article):
         """

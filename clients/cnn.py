@@ -23,11 +23,11 @@ def get_cnn_articles() -> List[Dict]:
         print("[CACHE] Using cached CNN news")
         return cached
     
-    articles = scrape_cnn_investing()
+    articles = _scrape_cnn_investing()
 
     return articles
 
-def scrape_cnn_investing() -> List[Dict]:
+def _scrape_cnn_investing() -> List[Dict]:
     """
     Scrape CNN investing articles and save them to a local JSON cache file.
     """
