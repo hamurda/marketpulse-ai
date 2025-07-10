@@ -95,7 +95,7 @@ scikit-learn==1.7.0
 scipy==1.16.0
 selenium==4.34.0
 sentence-transformers==5.0.0
-sentencepiece @ file:///D:/development/llm_engineering/marketpulse-ai/sentencepiece-0.2.0-cp312-cp312-win_amd64.whl#sha256=7a673a72aab81fef5ebe755c6e0cc60087d1f3a4700835d40537183c1703a45f
+sentencepiece
 setuptools==80.9.0
 six==1.17.0
 smmap==5.0.2
