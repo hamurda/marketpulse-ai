@@ -56,7 +56,7 @@ class ArticleProcessor:
         summarised["sentiment"]=sentiment_label
         summarised["sentiment_score"]=sentiment_score
     
-        save_to_cache(summarised, cache_path)
+        save_to_cache(key=cache_path, data=summarised)
         return summarised
 
     def _process_cnn(self):
