@@ -1,5 +1,6 @@
 import os
 import hashlib
+import streamlit as st
 from datasets import Dataset
 from datetime import date
 from typing import List
@@ -11,6 +12,9 @@ from src.utils.cache import load_from_cache, save_to_cache
 
 from cnn import get_cnn_articles
 
+
+TTL = 24 * 60 * 60  # 24 hours
+
 class ArticleProcessor:
     CACHE_DIR = "data/summaries"
     def __init__(self):
@@ -20,6 +24,7 @@ class ArticleProcessor:
         self.cnn_articles = []
         self.processed_articles = []
 
+    @st.cache_data(ttl=TTL)
     def get_processed_articles(self) -> List[SummaryDict]:
         cache_key = f"processed_{date.today()}"
         cached = load_from_cache(key=cache_key, cache_dir=self.CACHE_DIR)

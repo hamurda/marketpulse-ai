@@ -1,3 +1,4 @@
+import streamlit as st
 from datetime import date
 from typing import List, Dict
 from urllib.parse import urljoin
@@ -13,6 +14,9 @@ from webdriver_manager.chrome import ChromeDriverManager
 from src.utils.cache import load_from_cache, save_to_cache
 
 
+TTL = 24 * 60 * 60  # 24 hours
+
+@st.cache_data(ttl=TTL)
 def get_cnn_articles() -> List[Dict]:
     """
     Load from cache if available, otherwise scrape and save.
