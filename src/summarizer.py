@@ -5,6 +5,8 @@ from src.schemas import ArticleDict, SummaryDict
 
 import torch
 import ollama
+from tqdm import tqdm
+from datasets import Dataset
 from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 
 _model_id = "us4/fin-llama3.1-8b"
@@ -24,7 +26,6 @@ _model = AutoModelForCausalLM.from_pretrained(
 )
 
 class FinNewsSummarizer:
-    DEFAULT_OLLAMA_MODEL = "llama3.2"
     SYSTEM_PROMPT = """You are a financial news analyst assistant.
     Given a financial news article, your task is to extract a structured summary with the following sections:
     -Market Summary  
@@ -37,65 +38,29 @@ class FinNewsSummarizer:
     Do not add information. Summarise only the written information in the given article.
     """
 
-    def __init__(self, model=_model, tokenizer=_tokenizer, cache_dir="data/summaries", use_local_model=True):
+    def __init__(self, model=_model, tokenizer=_tokenizer):
         self.model = model
         self.tokenizer = tokenizer
-        self.cache_dir = cache_dir
-        self.use_local_model = use_local_model
 
-    def summarize(self, article: ArticleDict) -> str:        
-        if self.use_local_model:
-            summary = self._summarize_llama32(article)
-        else:
-            summary = self._summarize_fin_llama31(article)
+    def batch_summarize(self, articles: Dataset, batch_size: int = 8) -> list[str]:
+        prompts = [self._build_prompt(article) for article in articles]
+        summaries = []
 
-        summarised: SummaryDict = {
-                "title": article.get("title", ""),
-                "summary": summary,
-                "description": article.get("description", ""),
-                "published_at": article.get("publishedAt", ""),
-                "url": article.get("url", ""),
-                "source": article.get("source", {}).get("name", ""),
-                "sentiment": article.get("overall_sentiment_label", ""),
-                "sentiment_score": article.get("overall_sentiment_score", 0),
-                "topics": article.get("topics", []),
-                "ticker_sentiment": article.get("ticker_sentiment", []),
-            }
+        for i in tqdm(range(0, len(prompts), batch_size), desc="Summarizing"):
+            batch_prompts = prompts[i:i+batch_size]
+            tokenized = self.tokenizer(batch_prompts, return_tensors="pt", padding=True, truncation=True).to("cuda")
 
-        return summarised
+            outputs = self.model.generate(
+                **tokenized,
+                max_new_tokens=1000,
+                do_sample=False,
+            )
 
-    def _summarize_llama32(self, article):
-        """
-        Placeholder summarizing method to use llama3.2 locally. Otherwise GPU needed.
-        """
-        messages = [
-            {"role": "system", "content":self.SYSTEM_PROMPT},
-            {"role": "user", "content": self._build_prompt(article)}
-        ]
+            decoded = self.tokenizer.batch_decode(outputs, skip_special_tokens=True)
+            batch_summaries = [res[len(prompt):].strip() for res, prompt in zip(decoded, batch_prompts)]
+            summaries.extend(batch_summaries)
 
-        response = ollama.chat(model=self.DEFAULT_OLLAMA_MODEL, messages=messages, 
-                               stream=False,
-                               options= {
-                                    "temperature": 0.7
-                                })
-    
-        return response['message']['content']
-    
-    def _summarize_fin_llama31(self, article):
-        """
-        Using "us4/fin-llama3.1-8b" to summarize finance news.
-        """
-        prompt = self._build_prompt(article)
-        inputs = self.tokenizer(prompt, return_tensors="pt").to("cuda")
-
-        outputs = self.model.generate(
-            **inputs,
-            max_new_tokens=1000,
-            temperature=0.7,
-        )
-
-        response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
-        return response[len(prompt):].strip()
+        return summaries
     
     def _build_prompt(self, article: ArticleDict) -> str:
         return (
