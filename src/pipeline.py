@@ -1,102 +1,92 @@
 import os
 import hashlib
+from datasets import Dataset
 from datetime import date
 from typing import List
-from dotenv import load_dotenv
 
 from src.schemas import ArticleDict, SummaryDict
 from src.summarizer import FinNewsSummarizer
 from src.sentiment import classify_sentiment
 from src.utils.cache import load_from_cache, save_to_cache
 
-from clients.api_client import NewsAPIClient, AlphaVantageAPIClient
+# from clients.api_client import NewsAPIClient, AlphaVantageAPIClient
 from clients.cnn import get_cnn_articles
 
 class ArticleProcessor:
-    def __init__(self, cache_dir="data/summaries"):
-        os.makedirs(cache_dir, exist_ok=True)
-        self.cache_dir = cache_dir
-        self.summarizer = FinNewsSummarizer(cache_dir=cache_dir)
+    CACHE_DIR = "data/summaries"
+    def __init__(self):
+        os.makedirs(self.CACHE_DIR, exist_ok=True)
+        self.summarizer = FinNewsSummarizer()
 
-        self.news_api_articles = []
-        self.alpha_articles = []
+        # self.news_api_articles = []
+        # self.alpha_articles = []
         self.cnn_articles = []
         self.processed_articles = []
-    
+
     def get_processed_articles(self) -> List[SummaryDict]:
         cache_key = f"processed_{date.today()}"
-        cached = load_from_cache(cache_key)
+        cached = load_from_cache(key=cache_key, cache_dir=self.CACHE_DIR)
         if cached:
             print("[CACHE] Using cached processed data")
             return cached
         
         self._process_cnn()
-        self._process_alpha()
-        self._process_news_api()
+        # self._process_alpha()
+        # self._process_news_api()
 
-        save_to_cache(cache_key, self.processed_articles)
+        save_to_cache(key=cache_key, data=self.processed_articles, cache_dir=self.CACHE_DIR)
         return self.processed_articles
-
-
-    def get_processed_article(self, article: ArticleDict) -> SummaryDict:
-        article_id = self._hash(article["url"])
-        cache_path = os.path.join(self.cache_dir, f"{article_id}.json")
-        if os.path.exists(cache_path):
-            return load_from_cache(cache_path)
-        
-        return self._process_article(article=article)
     
-    def _process_article(self, article: ArticleDict) -> SummaryDict:     
-        article_id = self._hash(article["url"])
-        cache_path = os.path.join(self.cache_dir, f"{article_id}.json")
+    def _batch_process_articles(self, articles: List[ArticleDict]):
+        dataset = Dataset.from_list(articles)
+        summaries = self.summarizer.batch_summarize(dataset)
 
-        summarised = self.summarizer.summarize(article)
-        sentiment_label, sentiment_score = classify_sentiment(summarised['summary'])
+        for article, summary_text in zip(articles, summaries):
+            article_id = self._hash(article["url"])
+            cache_path = f"{article_id}.json"
 
-        summarised["sentiment"]=sentiment_label
-        summarised["sentiment_score"]=sentiment_score
-    
-        save_to_cache(key=cache_path, data=summarised)
-        return summarised
+            sentiment_label, sentiment_score = classify_sentiment(summary_text)
+
+            summarised = {
+                "title": article.get("title", ""),
+                "summary": summary_text,
+                "description": article.get("description", ""),
+                "published_at": article.get("published_at", ""),
+                "url": article.get("url", ""),
+                "source": article.get("source", ""),
+                "sentiment": sentiment_label,
+                "sentiment_score": sentiment_score,
+                "topics": article.get("topics", []),
+                "ticker_sentiment": article.get("ticker_sentiment", []),
+            }
+
+            save_to_cache(key=cache_path, data=summarised, cache_dir=self.CACHE_DIR)
+            self.processed_articles.append(summarised) 
 
     def _process_cnn(self):
         print("[INFO] Processing CNN articles")
         self.cnn_articles = get_cnn_articles()
-
-        for item in self.cnn_articles:
-            processed = self.get_processed_article(item)
-            self.processed_articles.append(processed)
+        self._batch_process_articles(self.cnn_articles)
         
-    def _process_alpha(self):
-        print("[INFO] Processing Alpha Vantage articles")
-        load_dotenv()
-        alpha_key = os.getenv("ALPHA_VANTAGE_KEY")
-        if not alpha_key:
-            print("[WARN] ALPHA_VANTAGE_KEY not set.")
-            return
-        self.alpha_articles = AlphaVantageAPIClient(alpha_key).fetch_latest_articles()
-
-        for item in self.alpha_articles:
-            processed = self.get_processed_article(item)
-            self.processed_articles.append(processed)
+    # def _process_alpha(self):
+    #     print("[INFO] Processing Alpha Vantage articles")
+    #     load_dotenv()
+    #     alpha_key = os.getenv("ALPHA_VANTAGE_KEY")
+    #     if not alpha_key:
+    #         print("[WARN] ALPHA_VANTAGE_KEY not set.")
+    #         return
+    #     self.alpha_articles = AlphaVantageAPIClient(alpha_key).fetch_latest_articles()
+    #     self._batch_process_articles(self.alpha_articles)
         
-    def _process_news_api(self):
-        print("[INFO] Processing News API articles")
-        load_dotenv()
-        news_key = os.getenv("NEWS_API_KEY")
-        if not news_key:
-            print("[WARN] NEWS_API_KEY not set.")
-            return
-        self.news_api_articles = NewsAPIClient(news_key).fetch_latest_articles()
-
-        for item in self.news_api_articles:
-            processed = self.get_processed_article(item)
-            self.processed_articles.append(processed)
+    # def _process_news_api(self):
+    #     print("[INFO] Processing News API articles")
+    #     load_dotenv()
+    #     news_key = os.getenv("NEWS_API_KEY")
+    #     if not news_key:
+    #         print("[WARN] NEWS_API_KEY not set.")
+    #         return
+    #     self.news_api_articles = NewsAPIClient(news_key).fetch_latest_articles()
+    #     self._batch_process_articles(self.news_api_articles)
 
     def _hash(self, text: str) -> str:
         return hashlib.sha1(text.encode()).hexdigest()
-
-
-    
-
-
