@@ -1,8 +1,5 @@
 import streamlit as st
-import os
-import json
 from src.pipeline import ArticleProcessor
-from src.utils.cache import load_from_cache
 from src.schemas import SummaryDict
 
 
@@ -12,14 +9,6 @@ SUMMARY_DIR = "data/summaries"
 def load_all_summaries() -> list[SummaryDict]:
     news = ArticleProcessor()
     summaries = news.get_processed_articles()
-    # for file in os.listdir(SUMMARY_DIR):
-    #     if file.endswith(".json"):
-    #         path = os.path.join(SUMMARY_DIR, file)
-    #         try:
-    #             summary = load_from_cache(path)
-    #             summaries.append(summary)
-    #         except Exception as e:
-    #             st.warning(f"Failed to load {file}: {e}")
     return sorted(summaries, key=lambda x: x.get("published_at", ""), reverse=True)
 
 

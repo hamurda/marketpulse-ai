@@ -1,4 +1,4 @@
-from typing import TypedDict, List, Literal
+from typing import TypedDict, List
 
 
 class TopicDict(TypedDict):

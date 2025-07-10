@@ -9,8 +9,7 @@ from src.summarizer import FinNewsSummarizer
 from src.sentiment import classify_sentiment
 from src.utils.cache import load_from_cache, save_to_cache
 
-# from clients.api_client import NewsAPIClient, AlphaVantageAPIClient
-from clients.cnn import get_cnn_articles
+from cnn import get_cnn_articles
 
 class ArticleProcessor:
     CACHE_DIR = "data/summaries"
@@ -18,8 +17,6 @@ class ArticleProcessor:
         os.makedirs(self.CACHE_DIR, exist_ok=True)
         self.summarizer = FinNewsSummarizer()
 
-        # self.news_api_articles = []
-        # self.alpha_articles = []
         self.cnn_articles = []
         self.processed_articles = []
 
@@ -31,8 +28,6 @@ class ArticleProcessor:
             return cached
         
         self._process_cnn()
-        # self._process_alpha()
-        # self._process_news_api()
 
         save_to_cache(key=cache_key, data=self.processed_articles, cache_dir=self.CACHE_DIR)
         return self.processed_articles
@@ -67,26 +62,6 @@ class ArticleProcessor:
         print("[INFO] Processing CNN articles")
         self.cnn_articles = get_cnn_articles()
         self._batch_process_articles(self.cnn_articles)
-        
-    # def _process_alpha(self):
-    #     print("[INFO] Processing Alpha Vantage articles")
-    #     load_dotenv()
-    #     alpha_key = os.getenv("ALPHA_VANTAGE_KEY")
-    #     if not alpha_key:
-    #         print("[WARN] ALPHA_VANTAGE_KEY not set.")
-    #         return
-    #     self.alpha_articles = AlphaVantageAPIClient(alpha_key).fetch_latest_articles()
-    #     self._batch_process_articles(self.alpha_articles)
-        
-    # def _process_news_api(self):
-    #     print("[INFO] Processing News API articles")
-    #     load_dotenv()
-    #     news_key = os.getenv("NEWS_API_KEY")
-    #     if not news_key:
-    #         print("[WARN] NEWS_API_KEY not set.")
-    #         return
-    #     self.news_api_articles = NewsAPIClient(news_key).fetch_latest_articles()
-    #     self._batch_process_articles(self.news_api_articles)
 
     def _hash(self, text: str) -> str:
         return hashlib.sha1(text.encode()).hexdigest()

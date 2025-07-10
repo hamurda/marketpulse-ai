@@ -1,10 +1,8 @@
-import os
 import hashlib
 from typing import List
 from src.schemas import ArticleDict, SummaryDict
 
 import torch
-import ollama
 from tqdm import tqdm
 from datasets import Dataset
 from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
