@@ -1,26 +1,26 @@
-import hashlib
-from src.schemas import ArticleDict
-
 import torch
+import streamlit as st
 from tqdm import tqdm
 from datasets import Dataset
 from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 
-_model_id = "us4/fin-llama3.1-8b"
-_tokenizer = AutoTokenizer.from_pretrained(_model_id)
 
-_bnb_config = BitsAndBytesConfig(
-    load_in_4bit=True,
-    bnb_4bit_use_double_quant=True,
-    bnb_4bit_quant_type="nf4",
-    bnb_4bit_compute_dtype=torch.float16
-)
+@st.cache_resource
+def load_summarizer_model():
+    model_id = "us4/fin-llama3.1-8b"
+    bnb_config = BitsAndBytesConfig(
+        load_in_4bit=True,
+        bnb_4bit_use_double_quant=True,
+        bnb_4bit_quant_type="nf4",
+        bnb_4bit_compute_dtype=torch.float16
+    )
 
-_model = AutoModelForCausalLM.from_pretrained(
-    _model_id,
-    quantization_config=_bnb_config,
-    device_map="auto"
-)
+    tokenizer = AutoTokenizer.from_pretrained(model_id)
+    model = AutoModelForCausalLM.from_pretrained(model_id, quantization_config=bnb_config).to("cuda" if torch.cuda.is_available() else "cpu")
+
+    return model, tokenizer
+
+_model, _tokenizer = load_summarizer_model()
 
 class FinNewsSummarizer:
     SYSTEM_PROMPT = """You are a financial news analyst assistant.
@@ -45,7 +45,7 @@ class FinNewsSummarizer:
 
         for i in tqdm(range(0, len(prompts), batch_size), desc="Summarizing"):
             batch_prompts = prompts[i:i+batch_size]
-            tokenized = self.tokenizer(batch_prompts, return_tensors="pt", padding=True, truncation=True)
+            tokenized = self.tokenizer(batch_prompts, return_tensors="pt", padding=True, truncation=True).to(self.model.device)
 
             outputs = self.model.generate(
                 **tokenized,
@@ -59,7 +59,7 @@ class FinNewsSummarizer:
 
         return summaries
     
-    def _build_prompt(self, article: ArticleDict) -> str:
+    def _build_prompt(self, article) -> str:
         return (
             f"<|system|>\n{self.SYSTEM_PROMPT}\n"
             f"<|user|>\n"
@@ -68,6 +68,3 @@ class FinNewsSummarizer:
             f"### The summary:\n"
             f"<|assistant|>\n"
         )
-
-    def _hash(self, text: str) -> str:
-        return hashlib.sha1(text.encode()).hexdigest()
