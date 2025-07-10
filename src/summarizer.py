@@ -39,13 +39,13 @@ class FinNewsSummarizer:
         self.model = model
         self.tokenizer = tokenizer
 
-    def batch_summarize(self, articles: Dataset, batch_size: int = 8) -> list[str]:
+    def batch_summarize(self, articles: Dataset, batch_size: int = 2) -> list[str]:
         prompts = [self._build_prompt(article) for article in articles]
         summaries = []
 
         for i in tqdm(range(0, len(prompts), batch_size), desc="Summarizing"):
             batch_prompts = prompts[i:i+batch_size]
-            tokenized = self.tokenizer(batch_prompts, return_tensors="pt", padding=True, truncation=True).to("cuda")
+            tokenized = self.tokenizer(batch_prompts, return_tensors="pt", padding=True, truncation=True)
 
             outputs = self.model.generate(
                 **tokenized,

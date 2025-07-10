@@ -3,7 +3,7 @@ datasets==3.6.0
 Requests==2.32.4
 selenium==4.34.2
 streamlit==1.46.1
-torch==2.5.1+cu121
+torch==2.5.1
 tqdm==4.67.1
 transformers==4.48.3
 webdriver_manager==4.0.2
