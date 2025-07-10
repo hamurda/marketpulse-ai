@@ -1,5 +1,5 @@
 import hashlib
-from src.schemas import ArticleDict, SummaryDict
+from src.schemas import ArticleDict
 
 import torch
 from tqdm import tqdm
