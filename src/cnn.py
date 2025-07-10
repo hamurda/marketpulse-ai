@@ -1,7 +1,5 @@
 from datetime import date
 from typing import List, Dict
-from src.utils.cache import load_from_cache, save_to_cache
-
 from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 from selenium import webdriver
@@ -11,6 +9,8 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
+
+from src.utils.cache import load_from_cache, save_to_cache
 
 
 def get_cnn_articles() -> List[Dict]:

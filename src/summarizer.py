@@ -1,5 +1,4 @@
 import hashlib
-from typing import List
 from src.schemas import ArticleDict, SummaryDict
 
 import torch
