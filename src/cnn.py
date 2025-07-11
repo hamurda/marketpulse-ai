@@ -33,7 +33,7 @@ class CNNInvestingScraper:
         self.url = "https://edition.cnn.com/business/investing"
         self.articles_data = []
         self.browserless_api_key = st.secrets["BROWSERLESS_API_KEY"]
-        self.browserless_url = f"https://chrome.browserless.io/content?token={self.browserless_api_key}"
+        self.browserless_url = f"https://chrome.browserless.io/content?token={self.browserless_api_key}&stealth"
 
     def run(self) -> List[dict]:
         html = self._get_html(self.url)
