@@ -32,7 +32,7 @@ class CNNInvestingScraper:
     def __init__(self):
         self.url = "https://edition.cnn.com/business/investing"
         self.articles_data = []
-        self.browserless_api_key = st.secrets["browserless"]["api_key"]
+        self.browserless_api_key = st.secrets["BROWSERLESS_API_KEY"]
         self.browserless_url = f"https://chrome.browserless.io/content?token={self.browserless_api_key}"
 
     def run(self) -> List[dict]:
