@@ -1,28 +1,35 @@
-import torch
+# import torch
+# from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
+import os
+from openai import OpenAI
 import streamlit as st
 from tqdm import tqdm
 from datasets import Dataset
-from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 
 
-@st.cache_resource
-def load_summarizer_model():
-    model_id = "us4/fin-llama3.1-8b"
-    bnb_config = BitsAndBytesConfig(
-        load_in_4bit=True,
-        bnb_4bit_use_double_quant=True,
-        bnb_4bit_quant_type="nf4",
-        bnb_4bit_compute_dtype=torch.float16
-    )
+OPEN_API_KEY = st.secrets["OPEN_API_KEY"]
+client = OpenAI()
 
-    tokenizer = AutoTokenizer.from_pretrained(model_id)
-    model = AutoModelForCausalLM.from_pretrained(model_id, quantization_config=bnb_config).to("cuda" if torch.cuda.is_available() else "cpu")
+# NO GPU SUPPORT, COMMENTED OUT FOR STREAMLIT CLOUD
+# @st.cache_resource
+# def load_summarizer_model():
+#     model_id = "us4/fin-llama3.1-8b"
+#     bnb_config = BitsAndBytesConfig(
+#         load_in_4bit=True,
+#         bnb_4bit_use_double_quant=True,
+#         bnb_4bit_quant_type="nf4",
+#         bnb_4bit_compute_dtype=torch.float16
+#     )
 
-    return model, tokenizer
+#     tokenizer = AutoTokenizer.from_pretrained(model_id)
+#     model = AutoModelForCausalLM.from_pretrained(model_id, quantization_config=bnb_config).to("cuda" if torch.cuda.is_available() else "cpu")
 
-_model, _tokenizer = load_summarizer_model()
+#     return model, tokenizer
+
+# _model, _tokenizer = load_summarizer_model()
 
 class FinNewsSummarizer:
+    OPENAI_MODEL = "gpt-4.1-nano"
     SYSTEM_PROMPT = """You are a financial news analyst assistant.
     Given a financial news article, your task is to extract a structured summary with the following sections:
     -Market Summary  
@@ -35,10 +42,31 @@ class FinNewsSummarizer:
     Do not add information. Summarise only the written information in the given article.
     """
 
-    def __init__(self, model=_model, tokenizer=_tokenizer):
+    def __init__(self, model=OPENAI_MODEL, tokenizer=None):
         self.model = model
         self.tokenizer = tokenizer
 
+    def summarize_openai(self, articles: Dataset)-> list[str]:
+        summaries = []
+
+        for article in tqdm(articles, desc="Summarizing: "):
+            messages = self._build_messages(article)
+
+            completion = client.chat.completions.create(
+                model=self.model,
+                messages=messages,
+                stream=False,
+                temperature=0.7,
+                max_tokens=1000
+            )
+
+            summary = completion.choices[0].message.content.strip()
+            summary = summary.replace("$", "\\$") #streamlit markdown LaTeX escape
+            summaries.append(summary)
+          
+        return summaries
+
+    # NOT USED IN STREAMLIT CLOUD DUE TO LACK OF GPU SUPPORT
     def batch_summarize(self, articles: Dataset, batch_size: int = 2) -> list[str]:
         prompts = [self._build_prompt(article) for article in articles]
         summaries = []
@@ -58,6 +86,16 @@ class FinNewsSummarizer:
             summaries.extend(batch_summaries)
 
         return summaries
+    
+    def _build_messages(self, article) -> list[dict]:
+        user_prompt = f"### News Title:\n{article['title']}\n \
+                        ### Article:\n{article['content']}\n"
+        
+        return [ 
+          {"role": "system", "content": self.SYSTEM_PROMPT},
+          {"role": "user", "content": user_prompt},
+          {"role": "assistant", "content": "### The summary:\n"}
+        ]
     
     def _build_prompt(self, article) -> str:
         return (
