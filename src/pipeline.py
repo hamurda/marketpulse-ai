@@ -1,6 +1,5 @@
 import os
 import hashlib
-import streamlit as st
 from datasets import Dataset
 from datetime import date
 from typing import List
@@ -10,10 +9,8 @@ from src.summarizer import FinNewsSummarizer
 from src.sentiment import classify_sentiment
 from src.utils.cache import load_from_cache, save_to_cache
 
-from cnn import get_cnn_articles
+from src.cnn import get_cnn_articles
 
-
-TTL = 24 * 60 * 60  # 24 hours
 
 class ArticleProcessor:
     CACHE_DIR = "data/summaries"
@@ -24,7 +21,6 @@ class ArticleProcessor:
         self.cnn_articles = []
         self.processed_articles = []
 
-    @st.cache_data(ttl=TTL)
     def get_processed_articles(self) -> List[SummaryDict]:
         cache_key = f"processed_{date.today()}"
         cached = load_from_cache(key=cache_key, cache_dir=self.CACHE_DIR)
@@ -39,7 +35,7 @@ class ArticleProcessor:
     
     def _batch_process_articles(self, articles: List[ArticleDict]):
         dataset = Dataset.from_list(articles)
-        summaries = self.summarizer.batch_summarize(dataset)
+        summaries = self.summarizer.summarize_openai(dataset)
 
         for article, summary_text in zip(articles, summaries):
             article_id = self._hash(article["url"])
