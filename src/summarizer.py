@@ -7,8 +7,8 @@ from tqdm import tqdm
 from datasets import Dataset
 
 
-OPEN_API_KEY = st.secrets["OPEN_API_KEY"]
-client = OpenAI()
+OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
+client = OpenAI(api_key=OPENAI_API_KEY)
 
 # NO GPU SUPPORT, COMMENTED OUT FOR STREAMLIT CLOUD
 # @st.cache_resource
